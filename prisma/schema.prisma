@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  incomes      Income[]
+  expenses     Expense[]
+  budgets      Budget[]
+  savingGoals  SavingGoal[]
+}
+
+model Income {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String
+  month       String
+  date        String
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount        Float
+  category      String
+  description   String
+  date          String
+  paymentMethod String
+  isRecurring   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+model Budget {
+  id          String   @id @default(uuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category    String
+  limitAmount Float
+  month       String
+  createdAt   DateTime @default(now())
+}
+
+model SavingGoal {
+  id            String              @id @default(uuid())
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  targetAmount  Float
+  currentAmount Float               @default(0)
+  targetDate    String
+  icon          String?
+  status        String              @default("IN_PROGRESS")
+  transactions  SavingTransaction[]
+  createdAt     DateTime            @default(now())
+}
+
+model SavingTransaction {
+  id        String     @id @default(uuid())
+  goalId    String
+  goal      SavingGoal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  amount    Float
+  date      String
+  note      String?
+  createdAt DateTime   @default(now())
+}
