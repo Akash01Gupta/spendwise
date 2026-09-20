@@ -55,6 +55,7 @@ interface AppContextType {
   safeInfo: SafeToSpendInfo;
   monthSummary: MonthSummary;
   healthScore: number;
+  applyOnboardingSetup: (data: import('@/types').OnboardingData) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -192,6 +193,67 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setSavingsTargetState(10000);
   };
 
+  const applyOnboardingSetup = (data: import('@/types').OnboardingData) => {
+    // Apply currency and savings target
+    setCurrencyState(data.currency);
+    saveCurrency(data.currency);
+    setSavingsTargetState(data.savingsTarget);
+    saveSavingsTarget(data.savingsTarget);
+
+    // Create base salary income for current month
+    const salaryIncome: Income = {
+      id: 'inc-onboard-' + Date.now(),
+      amount: data.baseSalary,
+      type: 'Salary',
+      date: new Date().toISOString().slice(0, 10),
+      description: `${data.name} - Base Salary`,
+      month: currentMonth,
+    };
+    const newIncomes = [salaryIncome, ...incomes];
+    setIncomes(newIncomes);
+    saveIncomes(newIncomes);
+
+    // Create fixed expenses
+    const fixedExpensesCreated: Expense[] = data.fixedExpenses.map((f) => ({
+      id: 'exp-onboard-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      amount: f.amount,
+      category: f.category,
+      description: f.description,
+      date: new Date().toISOString().slice(0, 10),
+      paymentMethod: 'Net Banking',
+      isRecurring: true,
+      createdAt: new Date().toISOString(),
+    }));
+    const newExpenses = [...fixedExpensesCreated, ...expenses];
+    setExpenses(newExpenses);
+    saveExpenses(newExpenses);
+
+    // Create budgets for the current month based on fixed commitments
+    const newBudgetsFromFixed: Budget[] = data.fixedExpenses.map((f) => ({
+      id: 'b-onboard-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+      category: f.category,
+      limitAmount: f.amount,
+      month: currentMonth,
+    }));
+    const updatedBudgets = [...newBudgetsFromFixed, ...budgets];
+    setBudgets(updatedBudgets);
+    saveBudgets(updatedBudgets);
+
+    // Create primary saving goal
+    const primaryGoal: SavingGoal = {
+      id: 'goal-onboard-' + Date.now(),
+      name: data.goalName,
+      targetAmount: data.goalTargetAmount,
+      currentAmount: 0,
+      targetDate: data.goalTargetDate,
+      icon: '🎯',
+      status: 'IN_PROGRESS',
+    };
+    const updatedGoals = [primaryGoal, ...goals];
+    setGoals(updatedGoals);
+    saveGoals(updatedGoals);
+  };
+
   const safeInfo = calculateSafeToSpend(currentMonth, incomes, expenses, savingsTarget);
   const monthSummary = calculateMonthSummary(currentMonth, incomes, expenses, savingsTarget);
   const healthScore = calculateFinancialHealthScore(monthSummary, safeInfo, budgets, expenses);
@@ -219,6 +281,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         depositToGoal,
         deleteGoal,
         resetDemoData,
+        applyOnboardingSetup,
         safeInfo,
         monthSummary,
         healthScore,
